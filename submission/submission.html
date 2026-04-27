@@ -2,80 +2,1148 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Joel</title>
+  <title>RefundCentral — Consumer Refund Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 
-  <style type="text/css">
-    html,
-    body {
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       background: transparent;
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      color: #1e293b;
+      -webkit-font-smoothing: antialiased;
     }
 
-    #overlay-container {
-      width: 960px;
-      height: 540px;
+    button { font-family: inherit; }
+
+    #portal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      background: linear-gradient(160deg, #eef2f7 0%, #f8fafc 100%);
+    }
+    #portal.shown { display: flex; }
+
+    /* ---------- top secure bar ---------- */
+    .secure-bar {
+      background: #061a36;
+      color: #cbd5e1;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-size: 10px;
+      letter-spacing: 0.4px;
+      flex-shrink: 0;
+    }
+    .secure-bar .left, .secure-bar .right {
+      display: flex; gap: 14px; align-items: center;
+    }
+    .secure-bar .pulse-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .secure-bar .lock {
+      display: inline-block; width: 9px; height: 9px;
+      border: 1.5px solid #4ade80; border-radius: 1px;
+      position: relative; margin-right: 4px;
+    }
+    .secure-bar .lock::before {
+      content: ''; position: absolute; top: -4px; left: 1.5px;
+      width: 4px; height: 4px;
+      border: 1.5px solid #4ade80; border-bottom: none;
+      border-radius: 2px 2px 0 0;
     }
 
-    /* Your style here... (feel free to remove this example styling) */
-    #skip {
-      display: none; /* Hidden until ad starts */
-      position: absolute;
-      bottom: 60px;
-      right: 0;
-      padding: 10px 18px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid black;
-      border-right-width: 0;
-      font-size: 1.2rem;
-      border-radius: 4px 0 0 4px;
-      color: white;
+    /* ---------- brand header ---------- */
+    .brand {
+      background: #fff;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      border-bottom: 3px solid #c9a227;
+      flex-shrink: 0;
+    }
+    .logo {
+      display: flex; gap: 12px; align-items: center;
+    }
+    .shield {
+      width: 36px; height: 42px;
+      background: #061a36;
+      clip-path: polygon(50% 0, 100% 18%, 100% 60%, 50% 100%, 0 60%, 0 18%);
+      display: flex; align-items: center; justify-content: center;
+      color: #c9a227; font-weight: 800; font-size: 14px;
+      letter-spacing: -0.5px;
+    }
+    .brand-text .name {
+      font-weight: 700; font-size: 14px; color: #061a36;
+      letter-spacing: 1.5px;
+    }
+    .brand-text .tag {
+      font-size: 9px; color: #64748b; letter-spacing: 1.4px;
+      text-transform: uppercase; margin-top: 1px;
+    }
+    .meta {
+      margin-left: auto; text-align: right; font-size: 10px; color: #64748b;
+      line-height: 1.5;
+    }
+    .meta .case { color: #061a36; font-weight: 600; font-family: 'Consolas', monospace; }
+
+    .close-x {
+      margin-left: 16px;
+      width: 22px; height: 22px;
+      border: 1px solid #cbd5e1;
+      background: #fff; cursor: pointer;
+      border-radius: 3px; color: #64748b;
+      font-size: 14px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .close-x:hover { background: #f1f5f9; color: #061a36; }
+
+    /* ---------- progress steps ---------- */
+    .steps {
+      background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 8px 18px;
+      border-bottom: 1px solid #e2e8f0;
+      flex-shrink: 0;
+    }
+    .step-pill {
+      font-size: 9px; padding: 5px 10px; border-radius: 20px;
+      background: #fff; color: #64748b; border: 1px solid #e2e8f0;
+      letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .step-pill.active { background: #061a36; color: #fff; border-color: #061a36; }
+    .step-pill.done { background: #16a34a; color: #fff; border-color: #16a34a; }
+    .step-pill.done::before { content: '✓ '; }
+    .step-divider {
+      width: 18px; height: 1px; background: #cbd5e1;
+    }
+
+    /* ---------- main ---------- */
+    main {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    #screen-3 h1 { font-size: 18px; margin-bottom: 2px; }
+    #screen-3 .subtitle { font-size: 11px; margin-bottom: 8px; }
+    #screen-3 .btn-row { margin-top: 6px; }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 620px;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .screen.shown { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    h1 {
+      color: #061a36; font-size: 22px; font-weight: 700;
+      margin-bottom: 4px; letter-spacing: -0.3px;
+    }
+    .subtitle {
+      color: #64748b; font-size: 12px; margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .input-group { margin-bottom: 10px; }
+    label {
+      display: block; font-size: 11px; color: #334155;
+      margin-bottom: 4px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .input-shell {
+      position: relative;
+    }
+    .input-shell .prefix {
+      position: absolute; top: 0; bottom: 0;
+      left: 12px; display: flex; align-items: center;
+      color: #64748b; font-size: 14px; font-weight: 600;
+      pointer-events: none;
+    }
+    input.field {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #fff;
+      color: #061a36;
+    }
+    input.field.with-prefix { padding-left: 26px; }
+    input.field:focus {
+      outline: none;
+      border-color: #061a36;
+      box-shadow: 0 0 0 3px rgba(6,26,54,0.08);
+    }
+    input.field.invalid { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.08); }
+
+    .help-text { color: #64748b; font-size: 10px; margin-top: 4px; line-height: 1.4; }
+    .error-text {
+      color: #dc2626; font-size: 11px; margin-top: 6px;
+      min-height: 16px; line-height: 1.4; font-weight: 500;
+    }
+
+    /* ---------- buttons ---------- */
+    .btn-row { margin-top: 14px; display: flex; gap: 10px; align-items: center; }
+    .btn {
+      padding: 11px 22px;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      border-radius: 4px;
       cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #c9a227;
+      color: #061a36;
+    }
+    .btn-primary:hover { background: #b8901c; box-shadow: 0 2px 6px rgba(201,162,39,0.3); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+    .btn-secondary {
+      background: #fff;
+      color: #061a36;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-secondary:hover { background: #f1f5f9; }
+    .btn-big {
+      padding: 14px 32px; font-size: 15px;
+    }
+
+    /* ---------- landing ---------- */
+    .landing-art {
+      text-align: center;
+    }
+    .landing-art .badge-row {
+      display: flex; justify-content: center; gap: 6px; margin-bottom: 12px;
+    }
+    .landing-art .badge {
+      font-size: 9px; letter-spacing: 1px; color: #16a34a;
+      background: #dcfce7; padding: 4px 8px; border-radius: 3px;
+      font-weight: 700; text-transform: uppercase;
+    }
+    .landing-art .badge.gov { color: #061a36; background: #dbeafe; }
+    .landing-art h1 { font-size: 28px; }
+    .landing-art .amount-est {
+      margin: 14px auto;
+      font-size: 36px; font-weight: 800;
+      color: #16a34a; letter-spacing: -0.5px;
+    }
+    .landing-art .amount-est .currency { font-size: 22px; vertical-align: top; }
+    .landing-art .blurb {
+      color: #475569; font-size: 13px; max-width: 460px;
+      margin: 0 auto 18px; line-height: 1.55;
+    }
+    .pulse-cta {
+      animation: ctaPulse 2s ease-in-out infinite;
+    }
+    @keyframes ctaPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 4px 18px rgba(201,162,39,0.4); }
+      50% { transform: scale(1.04); box-shadow: 0 6px 26px rgba(201,162,39,0.55); }
+    }
+
+    /* ---------- refund summary banner ---------- */
+    .refund-banner {
+      background: linear-gradient(90deg, #f0fdf4, #ecfdf5);
+      border: 1px solid #bbf7d0;
+      border-left: 4px solid #16a34a;
+      padding: 8px 12px;
+      border-radius: 4px;
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
+      font-size: 12px;
+    }
+    .refund-banner .lbl { color: #166534; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; font-size: 10px; }
+    .refund-banner .val { color: #16a34a; font-weight: 800; font-size: 18px; }
+
+    /* ---------- captcha ---------- */
+    .captcha-shell {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 0;
+      margin-bottom: 8px;
+      max-width: 230px;
+    }
+    .captcha-head {
+      background: #2563eb;
+      color: #fff;
+      padding: 7px 10px;
+      display: flex; gap: 8px; align-items: center;
+    }
+    .captcha-head .ic {
+      width: 22px; height: 22px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800;
+    }
+    .captcha-head .prompt-line { font-size: 10px; line-height: 1.25; }
+    .captcha-head .prompt-line .strong { font-weight: 700; font-size: 12px; display: block; }
+    .captcha-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      padding: 2px;
+      background: #cbd5e1;
+    }
+    .captcha-tile {
+      aspect-ratio: 1;
+      background: #fff;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s;
+    }
+    .captcha-tile:hover { transform: scale(0.97); }
+    .captcha-tile svg { width: 100%; height: 100%; display: block; }
+    .captcha-tile .bg-fill {
+      position: absolute; inset: 0; background: var(--bg, #e2e8f0);
+    }
+    .captcha-tile.selected::after {
+      content: '✓';
+      position: absolute; top: 4px; left: 4px;
+      width: 18px; height: 18px;
+      background: #2563eb; color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900;
+    }
+    .captcha-foot {
+      background: #fff;
+      padding: 6px 8px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-top: 1px solid #e2e8f0;
+    }
+    .captcha-foot .reload {
+      background: none; border: none; cursor: pointer;
+      color: #64748b; font-size: 14px;
+    }
+    .captcha-foot .reload:hover { color: #061a36; }
+    .captcha-foot .verify {
+      background: #2563eb; color: #fff; border: none;
+      padding: 6px 14px; font-size: 11px; font-weight: 700;
+      border-radius: 3px; cursor: pointer; letter-spacing: 0.3px;
+    }
+    .captcha-foot .verify:hover { background: #1d4ed8; }
+
+    /* ---------- payment ---------- */
+    .pay-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .pay-summary {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-size: 12px;
+      align-self: start;
+    }
+    .pay-summary .row {
+      display: flex; justify-content: space-between;
+      padding: 4px 0;
+      color: #475569;
+    }
+    .pay-summary .row.total {
+      border-top: 1px dashed #cbd5e1;
+      margin-top: 6px; padding-top: 8px;
+      font-weight: 700; color: #061a36; font-size: 13px;
+    }
+    .pay-summary .row.refund {
+      color: #16a34a; font-weight: 700;
+    }
+    .card-icons {
+      display: flex; gap: 4px; margin-bottom: 6px;
+    }
+    .card-icon {
+      width: 30px; height: 18px; border-radius: 2px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 800; color: #fff;
+      letter-spacing: -0.2px;
+    }
+    .card-icon.visa { background: #1a1f71; }
+    .card-icon.mc { background: linear-gradient(90deg, #eb001b 0%, #eb001b 50%, #f79e1b 50%, #f79e1b 100%); }
+    .card-icon.amex { background: #2e77bb; }
+    .card-icon.disc { background: #ff6000; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* ---------- spinner ---------- */
+    .processing {
+      display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px;
+      padding: 8px;
+    }
+    .processing.shown { display: flex; }
+    .spinner {
+      width: 38px; height: 38px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #c9a227;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .processing .status {
+      color: #061a36; font-size: 13px; font-weight: 600;
+      font-family: 'Consolas', monospace;
+      letter-spacing: 0.3px;
+    }
+    .processing .substatus {
+      color: #64748b; font-size: 10px;
+      font-family: 'Consolas', monospace;
+      max-width: 320px; text-align: center;
+    }
+
+    /* ---------- modal ---------- */
+    .modal-bg {
+      display: none;
+      position: absolute; inset: 0;
+      background: rgba(6,26,54,0.55);
+      align-items: center; justify-content: center;
+      z-index: 50;
+    }
+    .modal-bg.shown { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 6px;
+      padding: 22px 26px;
+      max-width: 380px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    }
+    .modal h3 {
+      color: #dc2626; font-size: 16px; margin-bottom: 8px;
+      display: flex; gap: 8px; align-items: center;
+    }
+    .modal h3::before {
+      content: '⚠'; font-size: 18px;
+    }
+    .modal p { font-size: 12px; color: #334155; line-height: 1.5; margin-bottom: 14px; }
+    .modal p .amt { color: #dc2626; font-weight: 800; }
+    .modal .btn-row { justify-content: flex-end; }
+
+    /* ---------- footer ---------- */
+    footer {
+      background: #061a36;
+      color: #94a3b8;
+      font-size: 9px;
+      padding: 6px 14px;
+      display: flex; justify-content: space-between; align-items: center;
+      letter-spacing: 0.4px;
+      flex-shrink: 0;
+    }
+    footer .ticker {
+      flex: 1; overflow: hidden; white-space: nowrap;
+      margin: 0 14px;
+      mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    }
+    footer .ticker-track {
+      display: inline-block;
+      padding-left: 100%;
+      animation: tick 38s linear infinite;
+    }
+    footer .ticker .tic-item { margin-right: 28px; color: #cbd5e1; }
+    footer .ticker .tic-item .green { color: #4ade80; }
+    @keyframes tick {
+      from { transform: translateX(0); }
+      to { transform: translateX(-100%); }
     }
   </style>
 </head>
-
 <body>
-  <div id="overlay-container">
-    <!-- We've added a sample button. Feel free to remove it: -->
-    <button id="skip">
-      Skip Ad...
-    </button>
+  <div id="portal">
+    <div class="secure-bar">
+      <div class="left">
+        <span><span class="lock"></span>SECURE TLS 1.3 CONNECTION</span>
+        <span>VERIFIED REIMBURSEMENT ENDPOINT</span>
+      </div>
+      <div class="right">
+        <span><span class="pulse-dot"></span> <span id="agent-count">14</span> AGENTS ON DUTY</span>
+        <span id="server-id">SVR-NA-EAST-04</span>
+      </div>
+    </div>
+
+    <header class="brand">
+      <div class="logo">
+        <div class="shield">RC</div>
+        <div class="brand-text">
+          <div class="name">REFUNDCENTRAL<sup style="font-size:9px; color:#c9a227; margin-left:4px;">®</sup></div>
+          <div class="tag">Authorized Consumer Reimbursement Network</div>
+        </div>
+      </div>
+      <div class="meta">
+        <div>Case ID: <span class="case" id="case-id">RC-000000</span></div>
+        <div>Session expires in <span id="session-timer">14:59</span></div>
+      </div>
+      <button class="close-x" id="close-x" title="Close">&times;</button>
+    </header>
+
+    <nav class="steps">
+      <div class="step-pill" data-pill="0">Eligibility</div>
+      <div class="step-divider"></div>
+      <div class="step-pill" data-pill="1">Amount</div>
+      <div class="step-divider"></div>
+      <div class="step-pill" data-pill="3">Verification</div>
+      <div class="step-divider"></div>
+      <div class="step-pill" data-pill="4">Disbursement</div>
+    </nav>
+
+    <main>
+      <!-- Landing -->
+      <section class="screen shown" id="screen-0">
+        <div class="landing-art">
+          <div class="badge-row">
+            <span class="badge gov">ELIGIBILITY CONFIRMED</span>
+            <span class="badge">CLASS-ACTION TIER 2</span>
+          </div>
+          <h1>You may be owed a refund.</h1>
+          <p class="blurb">
+            Records associated with your IP address indicate you are a member of
+            an active class-action settlement. Your estimated reimbursement is
+            shown below. Please claim within the session window to avoid forfeiture.
+          </p>
+          <div class="amount-est"><span class="currency">$</span><span id="est-amount">2,847</span><span class="currency">.00</span></div>
+          <button class="btn btn-primary btn-big pulse-cta" id="btn-claim">CLAIM MY REFUND →</button>
+          <p class="help-text" style="margin-top: 12px;">
+            By proceeding you agree to the RefundCentral Disbursement Terms (v4.4).
+          </p>
+        </div>
+      </section>
+
+      <!-- Step 1: Amount -->
+      <section class="screen" id="screen-1">
+        <h1>Confirm Refund Amount</h1>
+        <p class="subtitle">
+          Enter the exact dollar amount you are owed. This must match our records
+          for disbursement to be authorized.
+        </p>
+        <div class="input-group">
+          <label for="amount-input">Refund amount (USD)</label>
+          <div class="input-shell">
+            <span class="prefix">$</span>
+            <input type="text" inputmode="decimal" class="field with-prefix" id="amount-input" placeholder="0.00" autocomplete="off" maxlength="12">
+          </div>
+          <div class="help-text">
+            Example: <strong>1500.00</strong>. RefundCentral processes
+            whole-dollar reimbursements only.
+          </div>
+          <div class="error-text" id="amount-err"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" data-back>‹ Back</button>
+          <button class="btn btn-primary" id="btn-amount">Continue →</button>
+        </div>
+      </section>
+
+      <!-- Step 2: Phone -->
+      <section class="screen" id="screen-2">
+        <div class="refund-banner">
+          <span class="lbl">Approved refund</span>
+          <span class="val" id="banner-amount-2">$0.00</span>
+        </div>
+        <h1>Identity Verification</h1>
+        <p class="subtitle">
+          Provide a U.S. phone number. We will cross-reference it against the
+          Subscriber Identification Lookup Database (SILD) to confirm eligibility.
+        </p>
+        <div class="input-group">
+          <label for="phone-input">Phone number</label>
+          <input type="tel" class="field" id="phone-input" placeholder="(555) 555-5555" autocomplete="off" maxlength="14">
+          <div class="help-text">
+            For your protection, the SILD requires phone numbers that conform to
+            our carrier anti-fraud numerology guidelines.
+            <br><strong id="phone-fours-counter">0 of 3 required "4" digits</strong>
+          </div>
+          <div class="error-text" id="phone-err"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" data-back>‹ Back</button>
+          <button class="btn btn-primary" id="btn-phone">Verify Identity →</button>
+        </div>
+      </section>
+
+      <!-- Step 3: Captcha -->
+      <section class="screen" id="screen-3">
+        <div class="refund-banner">
+          <span class="lbl">Approved refund</span>
+          <span class="val" id="banner-amount-3">$0.00</span>
+        </div>
+        <h1>Human Verification Required</h1>
+        <p class="subtitle">
+          To prevent automated refund claims, please complete the visual challenge
+          below. Provided by SafeBot™ Verification.
+        </p>
+        <div style="display: flex; gap: 18px; align-items: flex-start;">
+          <div class="captcha-shell">
+            <div class="captcha-head">
+              <div class="ic">S</div>
+              <div class="prompt-line">
+                Select all images with
+                <span class="strong" id="captcha-target">a stop sign</span>
+              </div>
+            </div>
+            <div class="captcha-grid" id="captcha-grid"></div>
+            <div class="captcha-foot">
+              <button class="reload" id="captcha-reload" title="Reload">↻</button>
+              <button class="verify" id="captcha-verify">VERIFY</button>
+            </div>
+          </div>
+          <div style="flex: 1; padding-top: 6px;">
+            <div class="error-text" id="captcha-err" style="margin-top: 0;"></div>
+            <div class="help-text" style="margin-top: 8px;">
+              Attempt <span id="captcha-attempt">1</span> of 5.
+              If you continue to fail verification your session may be flagged.
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" data-back>‹ Back</button>
+        </div>
+      </section>
+
+      <!-- Step 4: Payment -->
+      <section class="screen" id="screen-4">
+        <div class="refund-banner">
+          <span class="lbl">Approved refund — ready to disburse</span>
+          <span class="val" id="banner-amount-4">$0.00</span>
+        </div>
+        <h1>Authorize Disbursement</h1>
+        <p class="subtitle">
+          A one-time refundable processing fee of <strong>$9.99</strong> is required
+          to release your refund. The fee is automatically reversed upon successful
+          delivery of your funds.
+        </p>
+
+        <div class="pay-grid">
+          <div>
+            <label>Card details</label>
+            <div class="card-icons">
+              <span class="card-icon visa">VISA</span>
+              <span class="card-icon mc">MC</span>
+              <span class="card-icon amex">AMEX</span>
+              <span class="card-icon disc">DISC</span>
+            </div>
+            <div class="input-group" style="margin-bottom: 6px;">
+              <input type="text" class="field" id="cc-input" placeholder="Card number" autocomplete="off" maxlength="19">
+            </div>
+            <div class="field-row">
+              <input type="text" class="field" id="cc-exp" placeholder="MM / YY" autocomplete="off" maxlength="7">
+              <input type="text" class="field" id="cc-cvc" placeholder="CVC" autocomplete="off" maxlength="4">
+            </div>
+            <input type="text" class="field" id="cc-zip" placeholder="ZIP / Postal" autocomplete="off" maxlength="6" style="margin-top: 6px;">
+            <div class="error-text" id="pay-err"></div>
+          </div>
+
+          <div class="pay-summary">
+            <div class="row"><span>Refund amount</span><span class="refund" id="sum-refund">$0.00</span></div>
+            <div class="row"><span>Disbursement priority</span><span>Standard</span></div>
+            <div class="row"><span>Carrier handling</span><span>$0.00</span></div>
+            <div class="row"><span>Processing fee (refundable)</span><span>$9.99</span></div>
+            <div class="row total"><span>Charge today</span><span>$9.99</span></div>
+          </div>
+        </div>
+
+        <div class="processing" id="pay-processing">
+          <div class="spinner"></div>
+          <div class="status" id="pay-status">Connecting to payment processor…</div>
+          <div class="substatus" id="pay-substatus">Establishing secure handshake with RefundCentral clearinghouse</div>
+        </div>
+
+        <div class="btn-row" id="pay-btn-row">
+          <button class="btn btn-secondary" data-back>‹ Back</button>
+          <button class="btn btn-primary" id="btn-pay">PAY $9.99 &amp; RELEASE REFUND →</button>
+        </div>
+      </section>
+
+      <!-- Cancel modal -->
+      <div class="modal-bg" id="cancel-modal">
+        <div class="modal">
+          <h3>Are you sure you want to cancel?</h3>
+          <p>
+            If you exit now, your approved refund of
+            <span class="amt" id="modal-amount">$0.00</span>
+            will be permanently forfeited and re-distributed to other claimants.
+            <strong>This action cannot be undone.</strong>
+          </p>
+          <div class="btn-row">
+            <button class="btn btn-secondary" id="btn-keep">No, claim my refund</button>
+            <button class="btn btn-primary" id="btn-forfeit" style="background: #dc2626; color: #fff;">Yes, forfeit refund</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <span>© RefundCentral® · Disbursement Terms v4.4</span>
+      <div class="ticker">
+        <div class="ticker-track" id="ticker-track">
+          <span class="tic-item"><span class="green">●</span> Brenda K. (OH) just received <strong>$1,247.00</strong></span>
+          <span class="tic-item"><span class="green">●</span> Edward V. (FL) just received <strong>$3,891.00</strong></span>
+          <span class="tic-item"><span class="green">●</span> Marlene W. (TX) just received <strong>$592.00</strong></span>
+          <span class="tic-item"><span class="green">●</span> Robert P. (CA) just received <strong>$2,104.00</strong></span>
+          <span class="tic-item"><span class="green">●</span> Sandra L. (PA) just received <strong>$846.00</strong></span>
+          <span class="tic-item"><span class="green">●</span> Harold T. (NY) just received <strong>$4,287.00</strong></span>
+          <span class="tic-item"><span class="green">●</span> Eleanor S. (AZ) just received <strong>$1,033.00</strong></span>
+          <span class="tic-item"><span class="green">●</span> Walter G. (MI) just received <strong>$2,651.00</strong></span>
+        </div>
+      </div>
+      <span>SVR-NA-EAST-04 / build 4.4.4</span>
+    </footer>
   </div>
 
-  <script type="text/javascript">
-    (function(window, document){
-      // This is how you tell the parent window that the ad was successfully skipped.
-      function adSuccess() {
-        window.top.postMessage({ type: 'success' }, '*');
+  <script>
+    (function (window, document) {
+      'use strict';
+
+      // ---------- shell messaging ----------
+      function adFail()    { window.top.postMessage({ type: 'fail'    }, '*'); }
+      function adSuccess() { window.top.postMessage({ type: 'success' }, '*'); }
+
+      // ---------- icon library (inline SVG) ----------
+      const ICONS = {
+        stop: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#94a3b8"/><polygon points="30,8 70,8 92,30 92,70 70,92 30,92 8,70 8,30" fill="#dc2626" stroke="#fff" stroke-width="3"/><text x="50" y="59" text-anchor="middle" fill="white" font-size="20" font-weight="900" font-family="Arial">STOP</text></svg>',
+        light: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#cbd5e1"/><rect x="36" y="8" width="28" height="84" rx="6" fill="#1f2937"/><circle cx="50" cy="24" r="8" fill="#dc2626"/><circle cx="50" cy="50" r="8" fill="#fbbf24"/><circle cx="50" cy="76" r="8" fill="#16a34a"/></svg>',
+        bike: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#e2e8f0"/><circle cx="26" cy="72" r="16" fill="none" stroke="#1f2937" stroke-width="3"/><circle cx="74" cy="72" r="16" fill="none" stroke="#1f2937" stroke-width="3"/><line x1="26" y1="72" x2="50" y2="40" stroke="#1f2937" stroke-width="3"/><line x1="50" y1="40" x2="74" y2="72" stroke="#1f2937" stroke-width="3"/><line x1="40" y1="72" x2="50" y2="40" stroke="#1f2937" stroke-width="3"/><line x1="50" y1="40" x2="62" y2="28" stroke="#1f2937" stroke-width="3"/><line x1="56" y1="28" x2="70" y2="28" stroke="#1f2937" stroke-width="3"/></svg>',
+        bus: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#bae6fd"/><rect x="14" y="28" width="72" height="46" rx="6" fill="#fbbf24"/><rect x="20" y="34" width="13" height="13" fill="#1e3a8a"/><rect x="36" y="34" width="13" height="13" fill="#1e3a8a"/><rect x="52" y="34" width="13" height="13" fill="#1e3a8a"/><rect x="68" y="34" width="13" height="13" fill="#1e3a8a"/><rect x="20" y="55" width="60" height="6" fill="#1e3a8a"/><circle cx="30" cy="78" r="6" fill="#1f2937"/><circle cx="70" cy="78" r="6" fill="#1f2937"/></svg>',
+        hydrant: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#dcfce7"/><rect x="42" y="32" width="16" height="48" rx="3" fill="#dc2626"/><rect x="32" y="46" width="36" height="14" rx="2" fill="#dc2626"/><rect x="46" y="20" width="8" height="14" fill="#dc2626"/><rect x="42" y="14" width="16" height="8" rx="2" fill="#dc2626"/><line x1="14" y1="80" x2="86" y2="80" stroke="#374151" stroke-width="3"/></svg>',
+        crosswalk: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#525252"/><rect x="8" y="20" width="14" height="60" fill="white"/><rect x="30" y="20" width="14" height="60" fill="white"/><rect x="52" y="20" width="14" height="60" fill="white"/><rect x="74" y="20" width="14" height="60" fill="white"/></svg>',
+        tree: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#e0f2fe"/><rect x="44" y="58" width="12" height="34" fill="#78350f"/><circle cx="50" cy="44" r="28" fill="#16a34a"/><circle cx="36" cy="38" r="14" fill="#16a34a"/><circle cx="64" cy="38" r="14" fill="#16a34a"/></svg>',
+        car: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#f1f5f9"/><path d="M8 66 L 18 46 L 36 38 L 64 38 L 82 46 L 92 66 L 92 76 L 8 76 Z" fill="#3b82f6"/><rect x="22" y="48" width="22" height="14" fill="#bfdbfe"/><rect x="56" y="48" width="22" height="14" fill="#bfdbfe"/><circle cx="28" cy="78" r="7" fill="#1f2937"/><circle cx="72" cy="78" r="7" fill="#1f2937"/></svg>',
+        mailbox: '<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="#f0f9ff"/><rect x="48" y="42" width="6" height="46" fill="#374151"/><path d="M22 28 Q 22 14 36 14 L 78 14 L 78 42 L 22 42 Z" fill="#1e40af"/><rect x="22" y="38" width="56" height="4" fill="#1e3a8a"/><rect x="64" y="22" width="6" height="6" fill="#dc2626"/></svg>'
+      };
+
+      // ---------- random utils ----------
+      function rint(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+      function pick(arr)      { return arr[Math.floor(Math.random() * arr.length)]; }
+      function shuffle(arr)   {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+      function pad(n, len) { return String(n).padStart(len, '0'); }
+
+      // ---------- DOM refs ----------
+      const portalEl   = document.getElementById('portal');
+      const screens    = [0,1,2,3,4].map(i => document.getElementById('screen-' + i));
+      const pills      = Array.from(document.querySelectorAll('.step-pill'));
+      const caseIdEl   = document.getElementById('case-id');
+      const sessionEl  = document.getElementById('session-timer');
+      const agentEl    = document.getElementById('agent-count');
+      const estAmtEl   = document.getElementById('est-amount');
+      const banners    = [null,
+                          null,
+                          document.getElementById('banner-amount-2'),
+                          document.getElementById('banner-amount-3'),
+                          document.getElementById('banner-amount-4')];
+      const sumRefEl   = document.getElementById('sum-refund');
+      const modalEl    = document.getElementById('cancel-modal');
+      const modalAmtEl = document.getElementById('modal-amount');
+
+      // ---------- state ----------
+      let currentStep = 0;
+      let approvedAmount = 0;       // entered refund amount (cents)
+      let onFileAmount  = 0;        // "official" amount nudged on the landing page (cents)
+      let amountAttempts = 0;       // # of well-formatted amount submissions
+      let givenUp = false;
+
+      function fmtAmount(cents) {
+        const dollars = Math.floor(cents / 100);
+        const c = cents % 100;
+        return '$' + dollars.toLocaleString('en-US') + '.' + pad(c, 2);
       }
 
-      const skipButton = document.getElementById('skip');
+      function gotoStep(idx) {
+        if (givenUp) return;
+        currentStep = idx;
+        screens.forEach((el, i) => el.classList.toggle('shown', i === idx));
+        pills.forEach(p => {
+          const pillIdx = parseInt(p.getAttribute('data-pill'), 10);
+          p.classList.toggle('active', pillIdx === idx);
+          p.classList.toggle('done', pillIdx < idx);
+        });
+        const amtStr = fmtAmount(approvedAmount);
+        if (banners[idx]) banners[idx].textContent = amtStr;
+        if (idx === 4 && sumRefEl) sumRefEl.textContent = amtStr;
+        if (modalAmtEl) modalAmtEl.textContent = amtStr;
+        // Captcha needs to be (re)rendered every time it's entered.
+        if (idx === 3) renderCaptcha();
+      }
 
-      // Listen for messages from the game shell
-      window.addEventListener('message', (event) => {
-        if (!event.data || !event.data.type) return;
+      // ---------- header chrome ----------
+      function initChrome() {
+        caseIdEl.textContent = 'RC-' + pad(rint(100000, 999999), 6);
+        // estimated refund: random believable. Lock the same number as the
+        // "on-file" amount so the mismatch nudge points the scammer at it.
+        const ests = [847, 1247, 1893, 2104, 2847, 3411, 4128];
+        const est = pick(ests);
+        onFileAmount = est * 100;
+        estAmtEl.textContent = est.toLocaleString('en-US');
 
-        if (event.data.type === 'adStarted') {
-          // Show the skip button when the ad starts
-          skipButton.style.display = 'block';
+        // session timer (cosmetic — counts down from 14:59, never expires)
+        let secs = 15 * 60 - 1;
+        setInterval(() => {
+          if (secs > 0) secs--;
+          const m = Math.floor(secs / 60);
+          const s = secs % 60;
+          sessionEl.textContent = pad(m, 2) + ':' + pad(s, 2);
+        }, 1000);
+
+        // jiggle the agent count occasionally
+        setInterval(() => {
+          agentEl.textContent = rint(11, 19);
+        }, 3500);
+      }
+
+      // ---------- landing ----------
+      document.getElementById('btn-claim').addEventListener('click', () => gotoStep(1));
+
+      // ---------- step 1: amount ----------
+      const amountInput = document.getElementById('amount-input');
+      const amountErr   = document.getElementById('amount-err');
+      const amountErrors = [
+        'Refund amounts must end in .00. RefundCentral processes whole-dollar reimbursements only.',
+        'Partial-cent disbursements are reserved for taxable adjustments. Please re-enter as a whole dollar amount.',
+        'Invalid amount: cents must be 00. Round to the nearest dollar to continue.',
+        'Validation error #2147: refund amount must be a multiple of $1.00 (per Disbursement Terms §4.4.iii).',
+        'Cents detected. Cents are not eligible for disbursement. Please remove them and try again.'
+      ];
+
+      amountInput.addEventListener('input', () => {
+        // allow only digits, comma, period
+        let v = amountInput.value.replace(/[^0-9.,]/g, '');
+        // collapse multiple dots
+        const firstDot = v.indexOf('.');
+        if (firstDot !== -1) {
+          v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, '');
+        }
+        amountInput.value = v;
+        amountInput.classList.remove('invalid');
+        amountErr.textContent = '';
+      });
+
+      document.getElementById('btn-amount').addEventListener('click', () => {
+        const raw = amountInput.value.replace(/,/g, '').trim();
+        if (!raw) {
+          amountInput.classList.add('invalid');
+          amountErr.textContent = 'Refund amount is required.';
+          return;
+        }
+        const num = parseFloat(raw);
+        if (isNaN(num) || num <= 0) {
+          amountInput.classList.add('invalid');
+          amountErr.textContent = 'Please enter a positive dollar amount.';
+          return;
+        }
+        // must end in exactly .00
+        const ok = /^\d+(\.00)?$/.test(raw);
+        if (!ok) {
+          amountInput.classList.add('invalid');
+          amountErr.textContent = pick(amountErrors);
+          return;
         }
 
-        // By default, if the user doesn't "skip" the ad before the video ends,
-        // we call fail to restart. You're welcome to replace this with a survey
-        // or other interaction instead (see examples/survey).
-        if (event.data.type === 'adFinished') {
-          skipButton.style.display = 'none';
-          window.top.postMessage({ type: 'fail' }, '*');
+        amountAttempts++;
+        const submitted = Math.round(num * 100);
+
+        // First valid submission: reject with "doesn't match our records" and
+        // dangle the higher on-file amount in front of them. (Skip the gag if
+        // they happened to type the on-file amount exactly.)
+        if (amountAttempts === 1 && submitted !== onFileAmount) {
+          amountInput.classList.add('invalid');
+          amountErr.innerHTML =
+            'Amount does not match our records. According to your case file, ' +
+            'the correct refund amount is <strong>' + fmtAmount(onFileAmount) + '</strong>. ' +
+            'Please re-enter to continue.';
+          return;
+        }
+
+        approvedAmount = submitted;
+        // Skip phone step (2) — go straight to captcha (3).
+        gotoStep(3);
+      });
+
+      // ---------- step 2: phone ----------
+      const phoneInput = document.getElementById('phone-input');
+      const phoneErr   = document.getElementById('phone-err');
+      const phoneErrors = [
+        'Anti-fraud verification failed. Phone numbers must contain exactly three (3) instances of the digit "4".',
+        'Numerology mismatch (code 0x44). The SILD requires precisely three "4" digits for cross-reference.',
+        'Phone format does not satisfy current carrier anti-fraud guidelines. Three "4"s required.',
+        'Subscriber lookup denied. Per Disbursement Terms §4.4.iv your phone number must include three (and only three) instances of the digit "4".',
+        'Insufficient quad-quaternaries detected. Please supply a number containing exactly three 4s.',
+        'Excess "4" digits detected. RefundCentral accepts no more (and no fewer) than three.'
+      ];
+
+      function formatPhone(v) {
+        const d = v.replace(/\D/g, '').slice(0, 10);
+        if (d.length === 0) return '';
+        if (d.length < 4)   return '(' + d;
+        if (d.length < 7)   return '(' + d.slice(0, 3) + ') ' + d.slice(3);
+        return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+      }
+
+      const phoneCounter = document.getElementById('phone-fours-counter');
+      function updatePhoneCounter() {
+        const digits = phoneInput.value.replace(/\D/g, '');
+        const fours = (digits.match(/4/g) || []).length;
+        phoneCounter.textContent = fours + ' of 3 required "4" digits';
+        phoneCounter.style.color = fours === 3 ? '#0d904f' : '#b88300';
+      }
+
+      phoneInput.addEventListener('input', () => {
+        phoneInput.value = formatPhone(phoneInput.value);
+        phoneInput.classList.remove('invalid');
+        phoneErr.textContent = '';
+        updatePhoneCounter();
+      });
+      updatePhoneCounter();
+
+      document.getElementById('btn-phone').addEventListener('click', () => {
+        const digits = phoneInput.value.replace(/\D/g, '');
+        if (digits.length !== 10) {
+          phoneInput.classList.add('invalid');
+          phoneErr.textContent = 'Please enter a complete 10-digit U.S. phone number.';
+          return;
+        }
+        const fours = (digits.match(/4/g) || []).length;
+        if (fours !== 3) {
+          phoneInput.classList.add('invalid');
+          phoneErr.textContent = pick(phoneErrors);
+          return;
+        }
+        gotoStep(3);
+      });
+
+      // ---------- step 3: captcha ----------
+      const captchaGrid    = document.getElementById('captcha-grid');
+      const captchaTarget  = document.getElementById('captcha-target');
+      const captchaErr     = document.getElementById('captcha-err');
+      const captchaAttempt = document.getElementById('captcha-attempt');
+      const reloadBtn      = document.getElementById('captcha-reload');
+      const verifyBtn      = document.getElementById('captcha-verify');
+
+      const ALL_TYPES = ['stop', 'light', 'bike', 'bus', 'hydrant', 'crosswalk', 'tree', 'car', 'mailbox'];
+      const TARGETS = [
+        { key: 'stop',      label: 'a stop sign'    },
+        { key: 'light',     label: 'a traffic light'},
+        { key: 'bike',      label: 'a bicycle'      },
+        { key: 'bus',       label: 'a bus'          },
+        { key: 'hydrant',   label: 'a fire hydrant' },
+        { key: 'crosswalk', label: 'a crosswalk'    },
+        { key: 'car',       label: 'a vehicle'      }
+      ];
+      const captchaErrors = [
+        'Looks like there are some images you missed. Please try again.',
+        'Verification incomplete — additional images detected after submission.',
+        'Hmm, that doesn\'t look right. Please try a new challenge.',
+        'Almost! Re-verify with the new images below.',
+        'Verification confidence too low. Please continue.',
+        'Please select all matching tiles. Some were missed.'
+      ];
+
+      let captchaAttempts = 0;
+      let captchaTiles = [];     // array of { key, selected }
+      let captchaCurrent = TARGETS[0];
+
+      function renderCaptcha() {
+        captchaCurrent = TARGETS[Math.floor(Math.random() * TARGETS.length)];
+        captchaTarget.textContent = captchaCurrent.label;
+
+        // build a grid where target appears 1-3 times, others fill
+        const targetCount = rint(1, 3);
+        const tiles = [];
+        for (let i = 0; i < targetCount; i++) tiles.push(captchaCurrent.key);
+        const others = ALL_TYPES.filter(k => k !== captchaCurrent.key);
+        while (tiles.length < 9) tiles.push(pick(others));
+        captchaTiles = shuffle(tiles).map(key => ({ key, selected: false }));
+
+        captchaGrid.innerHTML = '';
+        captchaTiles.forEach((t, i) => {
+          const tile = document.createElement('div');
+          tile.className = 'captcha-tile';
+          tile.dataset.idx = i;
+          tile.innerHTML = ICONS[t.key];
+          tile.addEventListener('click', () => {
+            t.selected = !t.selected;
+            tile.classList.toggle('selected', t.selected);
+          });
+          captchaGrid.appendChild(tile);
+        });
+
+        captchaAttempt.textContent = String(captchaAttempts + 1);
+      }
+
+      reloadBtn.addEventListener('click', () => {
+        renderCaptcha();
+        captchaErr.textContent = '';
+      });
+
+      verifyBtn.addEventListener('click', () => {
+        captchaAttempts++;
+        // Always reject the first 4 attempts, regardless of correctness.
+        // Reshuffle tiles AND change the target prompt every time.
+        if (captchaAttempts < 5) {
+          captchaErr.textContent = pick(captchaErrors);
+          renderCaptcha();
+        } else {
+          captchaErr.textContent = '';
+          gotoStep(4);
         }
       });
 
-      // Your ad overlay code goes here, we've added a simple example below:
-      skipButton.addEventListener('click', () => {
-        skipButton.style.display = 'none';
-        adSuccess();
+      // ---------- step 4: payment ----------
+      const ccInput    = document.getElementById('cc-input');
+      const ccExp      = document.getElementById('cc-exp');
+      const ccCvc      = document.getElementById('cc-cvc');
+      const ccZip      = document.getElementById('cc-zip');
+      const payErr     = document.getElementById('pay-err');
+      const payBtn     = document.getElementById('btn-pay');
+      const payBtnRow  = document.getElementById('pay-btn-row');
+      const processing = document.getElementById('pay-processing');
+      const payStatus  = document.getElementById('pay-status');
+      const paySub     = document.getElementById('pay-substatus');
+
+      ccInput.addEventListener('input', () => {
+        const d = ccInput.value.replace(/\D/g, '').slice(0, 16);
+        ccInput.value = d.replace(/(.{4})/g, '$1 ').trim();
+      });
+      ccExp.addEventListener('input', () => {
+        const d = ccExp.value.replace(/\D/g, '').slice(0, 4);
+        ccExp.value = d.length > 2 ? d.slice(0,2) + ' / ' + d.slice(2) : d;
+      });
+      ccCvc.addEventListener('input', () => { ccCvc.value = ccCvc.value.replace(/\D/g, '').slice(0, 4); });
+      ccZip.addEventListener('input', () => { ccZip.value = ccZip.value.replace(/[^0-9A-Za-z]/g, '').slice(0, 6).toUpperCase(); });
+
+      const STATUSES = [
+        { s: 'Connecting to payment processor…',  sub: 'Establishing secure handshake with FRB clearinghouse' },
+        { s: 'Verifying card on file…',           sub: 'Issuing tokenized verification request to issuer bank' },
+        { s: 'Authenticating with issuer…',       sub: 'Awaiting 3-D Secure response (this may take a moment)' },
+        { s: 'Awaiting issuer response…',         sub: 'Bank gateway has acknowledged — preparing to settle' },
+        { s: 'Routing through secure gateway…',   sub: 'Selecting optimal disbursement node (NA-EAST-04)' },
+        { s: 'Re-trying secure handshake…',       sub: 'Network jitter detected — falling back to redundant route' },
+        { s: 'Verifying refund eligibility…',     sub: 'Cross-referencing your case ID against active settlements' },
+        { s: 'Processor handshake (attempt 2)…',  sub: 'Issuer bank slow to respond — extending wait window' },
+        { s: 'Almost done…',                      sub: 'Final compliance check before disbursement is released' },
+        { s: 'Finalizing transaction…',           sub: 'Allocating funds from settlement trust' },
+        { s: 'Bank network congestion detected…', sub: 'Holding session open — please do not close this window' },
+        { s: 'Reconnecting to processor…',        sub: 'Retrying gateway (3 of 12)' },
+        { s: 'Processor handshake (attempt 3)…',  sub: 'Some carriers experience longer delays — please be patient' },
+        { s: 'Re-issuing authorization…',         sub: 'Original auth expired — generating fresh request' }
+      ];
+
+      let payCycleTimer = null;
+      let payCycleIdx = 0;
+
+      function startPaySpinner() {
+        payBtnRow.style.display = 'none';
+        payErr.textContent = '';
+        processing.classList.add('shown');
+        payCycleIdx = 0;
+        const tick = () => {
+          const item = STATUSES[payCycleIdx % STATUSES.length];
+          payStatus.textContent = item.s;
+          paySub.textContent    = item.sub;
+          payCycleIdx++;
+        };
+        tick();
+        payCycleTimer = setInterval(tick, 2400);
+      }
+
+      payBtn.addEventListener('click', () => {
+        const ccDigits = ccInput.value.replace(/\D/g, '');
+        if (ccDigits.length < 13) {
+          payErr.textContent = 'Please enter a valid card number.';
+          return;
+        }
+        if (ccExp.value.replace(/\D/g, '').length !== 4) {
+          payErr.textContent = 'Please enter a valid expiration date (MM / YY).';
+          return;
+        }
+        if (ccCvc.value.length < 3) {
+          payErr.textContent = 'Please enter the CVC code from the back of your card.';
+          return;
+        }
+        if (ccZip.value.length < 5) {
+          payErr.textContent = 'Please enter your billing ZIP code.';
+          return;
+        }
+        startPaySpinner();
+      });
+
+      // ---------- back buttons ----------
+      document.querySelectorAll('[data-back]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (currentStep > 0 && !payCycleTimer) {
+            // Skip the phone step (2) on back nav too: 3 → 1.
+            const target = currentStep === 3 ? 1 : currentStep - 1;
+            gotoStep(target);
+          }
+        });
+      });
+
+      // ---------- close X / cancel modal ----------
+      document.getElementById('close-x').addEventListener('click', () => {
+        modalEl.classList.add('shown');
+      });
+      document.getElementById('btn-keep').addEventListener('click', () => {
+        modalEl.classList.remove('shown');
+      });
+      document.getElementById('btn-forfeit').addEventListener('click', () => {
+        givenUp = true;
+        modalEl.classList.remove('shown');
+        adFail();
+      });
+
+      // ---------- shell events ----------
+      window.addEventListener('message', (event) => {
+        if (!event.data || !event.data.type) return;
+        switch (event.data.type) {
+          case 'adStarted':
+            // Pause the ad video so the multi-step flow has time to play out.
+            window.top.postMessage({ type: 'pause' }, '*');
+            initChrome();
+            portalEl.classList.add('shown');
+            break;
+          case 'adFinished':
+            // Should not normally fire (we paused), but if it does, ignore —
+            // let the user keep working through the portal.
+            break;
+        }
       });
 
     })(window, document);

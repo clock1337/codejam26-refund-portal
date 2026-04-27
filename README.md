@@ -1,3 +1,13 @@
+## About This Submission
+
+**RefundCentral** — an official-looking refund portal that traps you in an endless settlement claim flow.
+
+Authoritative consumer-reimbursement landing page: "You may be owed a refund." Click CLAIM → enter the refund amount (rejected unless it matches the "on file" amount, hinted on the landing) → human-verification CAPTCHA that rejects the first 4 attempts no matter what you select → fake $X "disbursement processing fee" payment form → endless cascade of bank-handshake statuses ("Connecting to processor…", "Verifying card on file…", "Reconnecting…") that loops forever.
+
+Clean .gov-style consumer-protection design. Government shield, badge bar, step pills, session timer. Looks like a real settlement claim site.
+
+---
+
 # Kitboga Code Jam 2026
 "Unskippable ad"
 
